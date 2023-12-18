@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Calculator</title>
+    <style>
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin: 0;
+        padding: 0;
+      }
+      header {
+        background-color: white;
+        width: 100%;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      #text {
+        width: 80%;
+        height: 100px;
+      }
+      .container {
+        display: flex;
+        width: 80%;
+      }
+      nav,
+      #text2 {
+        flex: 1;
+        text-align: center;
+      }
+      nav {
+        margin-right: 20px;
+      }
+      button,
+      input {
+        width: 40px;
+        height: 40px;
+        margin: 5px;
+      }
+      #text2 {
+        height: 300px;
+        border: 1px solid #ddd;
+        padding: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Web Calculator</h1>
+      <textarea id="text" readonly></textarea>
+    </header>
+    <div class="container">
+      <nav>
+        <button id="AC" onclick="clickBtnAllDelete(event)">AC</button>
+        <button id="R" onclick="clickBtn(event)">R</button>
+        <button id="backspace" onclick="clickBtnDelete(event)">←</button>
+        <button id="(" onclick="clickBtn(event)">(</button>
+        <button id=")" onclick="clickBtn(event)">)</button>
+        <button id="+" onclick="clickBtn(event)">+</button>
+        <button id="-" onclick="clickBtn(event)">-</button>
+        <button id="*" onclick="clickBtn(event)">*</button>
+        <button id="/" onclick="clickBtn(event)">/</button>
+        <button id="." onclick="clickBtn(event)">.</button>
+        <button id="1" onclick="clickBtn(event)">1</button>
+        <button id="2" onclick="clickBtn(event)">2</button>
+        <button id="3" onclick="clickBtn(event)">3</button>
+        <button id="4" onclick="clickBtn(event)">4</button>
+        <button id="5" onclick="clickBtn(event)">5</button>
+        <button id="6" onclick="clickBtn(event)">6</button>
+        <button id="7" onclick="clickBtn(event)">7</button>
+        <button id="8" onclick="clickBtn(event)">8</button>
+        <button id="9" onclick="clickBtn(event)">9</button>
+        <button id="0" onclick="clickBtn(event)">0</button>
+        <button id="=" onclick="clickBtnEqual(event)">=</button>
+      </nav>
+      <textarea id="text2" readonly></textarea>
+    </div>
+    <script>
+      function clickBtnDelete() {
+        var textArea = document.getElementById("text");
+        textArea.value = textArea.value.slice(0, -1);
+      }
+      function clickBtnAllDelete() {
+        document.getElementById("text").value = "";
+      }
+      function clickBtnEqual(e) {
+        var expression = document.getElementById("text").value;
+        var apiURL = "http://localhost:8000/eval/";
+        var reqBody = JSON.stringify({ expr: expression });
+
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", apiURL, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+              var resObj = JSON.parse(xhr.responseText);
+              document.getElementById("text2").value +=
+                expression + " = " + resObj.result + "\n";
+            } else {
+              console.error("Error:", xhr.statusText);
+            }
+          }
+        };
+
+        xhr.send(reqBody);
+        document.getElementById("text").value = "";
+      }
+      function recallExpressions() {
+        var textArea = document.getElementById("text");
+        var recallId = textArea.value.trim(); 
+        var apiURL = "http://localhost:8000/mem/";
+        var reqBody = JSON.stringify({ recall: recallId || "all" }); 
+
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", apiURL, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === 4) {
+            var outputArea = document.getElementById("text2");
+            if (xhr.status === 200) {
+              var resObj = JSON.parse(xhr.responseText);
+              if (recallId && recallId !== "all") {
+                
+                outputArea.value +=
+                  "\n[" + recallId + "] " + resObj.expr + "\n";
+              } else {
+                
+                outputArea.value += "\nMemory:\n";
+                resObj.expr.forEach(function (expression, index) {
+                  outputArea.value +=
+                    "[" + (index + 1) + "] " + expression + "\n";
+                });
+              }
+            } else if (xhr.status === 404) {
+              outputArea.value += "\nNo Such Expression: " + recallId + "\n";
+            } else {
+              outputArea.value += "\nError: " + xhr.statusText + "\n";
+            }
+          }
+        };
+
+        xhr.send(reqBody);
+      }
+
+      function clickBtn(e) {
+        var btnValue = e.target.innerHTML;
+        var textArea = document.getElementById("text");
+        if (btnValue === "R") {
+          recallExpressions();
+          textArea.value = ""; 
+        } else {
+          textArea.value += btnValue;
+        }
+      }
+    </script>
+  </body>
+</html>
